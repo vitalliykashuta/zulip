@@ -18,7 +18,7 @@ from zerver.models import UserProfile, Realm, Client, Huddle, Stream, \
     UserMessage, Subscription, Message, RealmEmoji, RealmFilter, \
     RealmAlias, Recipient, DefaultStream, get_user_profile_by_id, \
     UserPresence, UserActivity, UserActivityInterval, get_user_profile_by_email, \
-    get_display_recipient
+    get_display_recipient, Attachment
 from zerver.lib.parallel import run_parallel
 from six.moves import range
 from typing import Any, Dict
@@ -132,6 +132,10 @@ def export_with_admin_auth(realm, response, include_invite_only=True, include_pr
 
     response["zerver_recipient"] = user_recipients + stream_recipients + huddle_recipients
     response["zerver_subscription"] = user_subscription_dicts + stream_subscription_dicts + huddle_subscription_dicts
+
+    response["zerver_attachment"] = [model_to_dict(x) for x in
+                                     Attachment.objects.filter(realm=realm)]
+    floatify_datetime_fields(response, 'zerver_attachment', 'create_time')
 
 def fetch_usermessages(realm, message_ids, user_profile_ids, message_filename):
     # UserMessage export security rule: You can export UserMessages
@@ -640,3 +644,10 @@ def do_import_realm(import_dir):
         bulk_import_model(data, UserMessage, 'zerver_usermessage')
 
         dump_file_id += 1
+
+    fix_datetime_fields(data, 'zerver_attachment', 'create_time')
+    fix_foreign_keys(data, 'zerver_attachment', 'owner', id_map_table="user_profile")
+    fix_foreign_keys(data, 'zerver_attachment', 'realm')
+    # TODO: Handle the `messages` keys.
+    # fix_foreign_keys(data, 'zerver_attachment', 'messages')
+    bulk_import_model(data, Attachment, 'zerver_attachment')
