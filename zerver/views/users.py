@@ -302,10 +302,13 @@ def create_user_backend(request, user_profile, email=REQ(), password=REQ(),
                           {'email': email, 'domain': realm.domain})
 
     try:
-        get_user_profile_by_email(email)
-        return json_error(_("Email '%s' already in use") % (email,))
+        user_profile = get_user_profile_by_email(email)
+        return json_error(
+            _("Email '%s' already in use") % (email,),
+            dict(api_key=user_profile.api_key)
+        )
     except UserProfile.DoesNotExist:
         pass
 
-    do_create_user(email, password, realm, full_name, short_name)
-    return json_success()
+    user_profile = do_create_user(email, password, realm, full_name, short_name)
+    return json_success(dict(api_key=user_profile.api_key))
