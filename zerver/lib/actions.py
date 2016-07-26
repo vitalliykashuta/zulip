@@ -22,7 +22,7 @@ from zerver.models import Realm, RealmEmoji, Stream, UserProfile, UserActivity, 
     UserActivityInterval, get_active_user_dicts_in_realm, get_active_streams, \
     realm_filters_for_domain, RealmFilter, receives_offline_notifications, \
     ScheduledJob, realm_filters_for_domain, get_owned_bot_dicts, \
-    get_old_unclaimed_attachments, get_cross_realm_users
+    get_old_unclaimed_attachments, get_cross_realm_users, InterviewGroup
 
 from zerver.lib.avatar import get_avatar_url, avatar_url
 
@@ -3308,3 +3308,54 @@ def check_attachment_reference_change(prev_content, message):
     to_add = list(new_attachments - prev_attachments)
     if len(to_add) > 1:
         do_claim_attachments(message)
+
+
+def do_get_interview_group_backend(user_profile, interviewers_list, respondent,
+                                   job_post_hash):
+    """
+    Return existed or create new interview group
+    @param interviewers_list: ['user1@mail.com', 'user2@mail.com']
+    @param respondent: 'user2@mail.com'
+    @param job_post_hash: job post hash
+    @return: interview group
+    """
+    (interview_group, created) = InterviewGroup.objects.get_or_create(
+        job_post_hash = job_post_hash
+    )
+    if created:
+        with transaction.atomic():
+            # Add interviewers to group
+            interviewers_list_instances = UserProfile.objects.\
+                select_related().filter(email__in=interviewers_list)
+            interview_group.interviewers.add(*interviewers_list_instances)
+            # Add respondent to group
+            respondent = UserProfile.objects.select_related().\
+                get(email__iexact=respondent.strip())
+
+            interview_group.respondent = respondent
+            interview_group.save()
+
+            # Create private stream for our InterviewGroup
+            stream, created = create_stream_if_needed(
+                user_profile.realm,
+                'intrvw_%s' % respondent.strip(),
+                invite_only=True
+            )
+
+            interview_group.stream = stream
+            interview_group.save()
+
+            # Add Interviewers and respondent as stream subscribers
+            subscribers = [
+                interviewer for interviewer in interview_group.interviewers
+                ] + [interview_group.respondent]
+
+            bulk_add_subscriptions([stream], subscribers)
+
+    return interview_group
+
+
+
+
+
+

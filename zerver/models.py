@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from typing import Any, List, Set, Tuple, TypeVar, \
     Union, Optional, Sequence, AbstractSet
 from typing.re import Match
+
 from zerver.lib.str_utils import NonBinaryStr
 
 from django.db import models
@@ -1541,35 +1542,6 @@ class InterviewGroup(models.Model):
     def get_members_list(self):
         return self.values_list('interviewers_id', flat=True) + \
                [self.respondent_id]
-
-def get_interview_group_backend(interviewers_list, respondent, job_post_hash):
-    """
-    Return existed or create new interview group
-    @param interviewers_list: ['user1@mail.com', 'user2@mail.com']
-    @param respondent: 'user2@mail.com'
-    @param job_post_hash: job post hash
-    @return: interview group
-    """
-    (interview_group, created) = InterviewGroup.objects.get_or_create(
-        job_post_hash = job_post_hash
-    )
-    if created:
-        with transaction.atomic():
-            # Add interviewers to group
-            interviewers_list_instances = UserProfile.objects.\
-                select_related().filter(email__in=interviewers_list)
-            interview_group.interviewers.add(*interviewers_list_instances)
-            # Add respondent to group
-            respondent = UserProfile.objects.select_related().\
-                get(email__iexact=repspondent.strip())
-
-            interview_group.respondent = respondent
-            interview_group.save()
-
-            interview.huddle = get_huddle(interview_group.get_members_list())
-            interview_group.save()
-
-    return interview_group
 
 # class ContractGroup(models.Model):
 #     owners = models.ManyToManyField(UserProfile, related_name='contract_executors')
