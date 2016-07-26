@@ -1536,7 +1536,7 @@ class InterviewGroup(models.Model):
     interviewers = models.ManyToManyField(UserProfile, related_name='hire')
     respondent = models.ForeignKey(UserProfile, related_name='find')
     job_post_hash = models.CharField(max_length=40, db_index=True, unique=True)
-    huddle = models.ForeignKey(Huddle, blank=True, null=True)
+    stream = models.ForeignKey(Stream, blank=True, null=True)
 
     def get_members_list(self):
         return self.values_list('interviewers_id', flat=True) + \
