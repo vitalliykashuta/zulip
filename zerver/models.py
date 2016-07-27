@@ -1534,10 +1534,13 @@ class ScheduledJob(models.Model):
 
 
 class InterviewGroup(models.Model):
-    interviewers = models.ManyToManyField(UserProfile, related_name='hire')
-    respondent = models.ForeignKey(UserProfile, related_name='find')
-    job_post_hash = models.CharField(max_length=40, db_index=True, unique=True)
+    interviewers = models.ManyToManyField(UserProfile, related_name='hire', blank=True)
+    respondent = models.ForeignKey(UserProfile, related_name='find', null=True, blank=True)
+    job_post_hash = models.CharField(max_length=40, db_index=True)
     stream = models.ForeignKey(Stream, blank=True, null=True)
+
+    class Meta:
+        unique_together = ('respondent', 'job_post_hash')
 
     def get_members_list(self):
         return self.values_list('interviewers_id', flat=True) + \

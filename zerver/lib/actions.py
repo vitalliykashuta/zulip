@@ -3310,17 +3310,23 @@ def check_attachment_reference_change(prev_content, message):
         do_claim_attachments(message)
 
 
-def do_get_interview_group_backend(user_profile, interviewers_list, respondent,
-                                   job_post_hash):
+def do_get_interview_group(user_profile, interviewers_list, respondent, job_post_hash):
     """
     Return existed or create new interview group
+    @param user_profile: user_profile instance
     @param interviewers_list: ['user1@mail.com', 'user2@mail.com']
     @param respondent: 'user2@mail.com'
     @param job_post_hash: job post hash
     @return: interview group
     """
+    try:
+        respondent_instance = UserProfile.objects.select_related().get(email__iexact=respondent.strip())
+    except UserProfile.DoesNotExist:
+        raise JsonableError(_("Respondent email: %s is not registered" % respondent))
+
     (interview_group, created) = InterviewGroup.objects.get_or_create(
-        job_post_hash = job_post_hash
+        job_post_hash=job_post_hash,
+        respondent_id=respondent_instance.id
     )
     if created:
         with transaction.atomic():
@@ -3328,17 +3334,11 @@ def do_get_interview_group_backend(user_profile, interviewers_list, respondent,
             interviewers_list_instances = UserProfile.objects.\
                 select_related().filter(email__in=interviewers_list)
             interview_group.interviewers.add(*interviewers_list_instances)
-            # Add respondent to group
-            respondent = UserProfile.objects.select_related().\
-                get(email__iexact=respondent.strip())
-
-            interview_group.respondent = respondent
-            interview_group.save()
 
             # Create private stream for our InterviewGroup
             stream, created = create_stream_if_needed(
                 user_profile.realm,
-                'intrvw_%s' % respondent.strip(),
+                'intv_%d' % interview_group.id,
                 invite_only=True
             )
 
@@ -3347,7 +3347,7 @@ def do_get_interview_group_backend(user_profile, interviewers_list, respondent,
 
             # Add Interviewers and respondent as stream subscribers
             subscribers = [
-                interviewer for interviewer in interview_group.interviewers
+                interviewer for interviewer in interview_group.interviewers.all()
                 ] + [interview_group.respondent]
 
             bulk_add_subscriptions([stream], subscribers)

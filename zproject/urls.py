@@ -215,6 +215,15 @@ v1_api_and_json_patterns = [
         {'GET': 'zerver.views.streams.list_subscriptions_backend',
          'POST': 'zerver.views.streams.add_subscriptions_backend',
          'PATCH': 'zerver.views.streams.update_subscriptions_backend'}),
+    # POST creates mew interview group
+    url(r'^users/me/interview_group$', 'zerver.lib.rest.rest_dispatch',
+        {'POST': 'zerver.views.interview.add_interview_group_backend'}
+        ),
+
+    # GET my hiring respondents
+    url(r'^users/me/interview_respondents$', 'zerver.lib.rest.rest_dispatch',
+        {'GET': 'zerver.views.interview.get_interviews_responders_backend'}
+        ),
 
     # used to register for an event queue in tornado
     url(r'^register$', 'zerver.lib.rest.rest_dispatch',
