@@ -1535,7 +1535,7 @@ class ScheduledJob(models.Model):
 
 class InterviewGroup(models.Model):
     interviewers = models.ManyToManyField(UserProfile, related_name='hire', blank=True)
-    respondent = models.ForeignKey(UserProfile, related_name='find', null=True, blank=True)
+    respondent = models.ForeignKey(UserProfile, related_name='find_job', null=True, blank=True)
     job_post_hash = models.CharField(max_length=40, db_index=True)
     stream = models.ForeignKey(Stream, blank=True, null=True)
 
@@ -1546,7 +1546,9 @@ class InterviewGroup(models.Model):
         return self.values_list('interviewers_id', flat=True) + \
                [self.respondent_id]
 
-# class ContractGroup(models.Model):
-#     owners = models.ManyToManyField(UserProfile, related_name='contract_executors')
-#     executor = models.ForeignKey(UserProfile, related_name='contract_owners')
-#     contract_hash = models.CharField(max_length=40, db_index=True, unique=True)
+
+class ContractGroup(models.Model):
+    owners = models.ManyToManyField(UserProfile, related_name='contract_executors', blank=True)
+    executor = models.ForeignKey(UserProfile, related_name='contract_owners', null=True, blank=True)
+    contract_hash = models.CharField(max_length=40, db_index=True, unique=True)
+    stream = models.ForeignKey(Stream, blank=True, null=True)
