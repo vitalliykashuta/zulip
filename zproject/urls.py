@@ -215,7 +215,8 @@ v1_api_and_json_patterns = [
         {'GET': 'zerver.views.streams.list_subscriptions_backend',
          'POST': 'zerver.views.streams.add_subscriptions_backend',
          'PATCH': 'zerver.views.streams.update_subscriptions_backend'}),
-    # POST creates mew interview group
+
+    # POST creates new interview group or return existed one
     url(r'^users/me/interview_group$', 'zerver.lib.rest.rest_dispatch',
         {'POST': 'zerver.views.semilimes.add_interview_group_backend'}
         ),
@@ -234,6 +235,17 @@ v1_api_and_json_patterns = [
     url(r'^users/me/interview_interviewers$', 'zerver.lib.rest.rest_dispatch',
         {'GET': 'zerver.views.semilimes.get_interviews_interviewers_backend'}
         ),
+
+    # POST creates new contract group or returns existed one
+    url(r'^users/me/contract_group$', 'zerver.lib.rest.rest_dispatch',
+        {'POST': 'zerver.views.semilimes.add_contract_group_backend'}
+        ),
+
+    # GET my interviews members
+    url(r'^users/me/contracts_members$', 'zerver.lib.rest.rest_dispatch',
+        {'GET': 'zerver.views.semilimes.get_contracts_members_backend'}
+        ),
+
 
     # used to register for an event queue in tornado
     url(r'^register$', 'zerver.lib.rest.rest_dispatch',
