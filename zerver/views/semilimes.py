@@ -69,7 +69,7 @@ def get_stream_profile_info(profile, stream):
               "is_active": profile.is_active,
               "email": profile.email,
               "avatar_url": avatar_url,
-              "stream": stream.id}
+              "stream": stream.name}
 
     if profile.is_bot and profile.bot_owner is not None:
         member["bot_owner"] = profile.bot_owner.email
@@ -86,7 +86,9 @@ def get_interviews_responders(user_profile):
     group_list = user_profile.hire.all()
     members = []
     for group in group_list:
-        members.append(get_stream_profile_info(group.respondent, group.stream))
+        member_dict = get_stream_profile_info(group.respondent, group.stream)
+        member_dict['job_post'] = group.job_post_hash
+        members.append(member_dict)
     return members
 
 
@@ -100,7 +102,9 @@ def get_interviews_interviewers(user_profile):
     members = []
     for group in group_list:
         for interviewer in group.interviewers.all():
-            members.append(get_stream_profile_info(interviewer, group.stream))
+            member_dict = get_stream_profile_info(interviewer, group.stream)
+            member_dict['job_post'] = group.job_post_hash
+            members.append(member_dict)
     return members
 
 
@@ -167,7 +171,7 @@ def add_interview_group_backend(request,
     )
     result = dict()
     result["interview_group"] = interview_group_instance.stream.name
-    result["stream"] = interview_group_instance.stream.name
+    result["stream"] = interview_group_instance.stream.id
     return json_success(result)
 
 
