@@ -18,7 +18,7 @@ from zerver.lib.response import json_error, json_success
 from zerver.lib.upload import upload_avatar_image
 from zerver.lib.validator import check_bool
 from zerver.models import UserProfile, Stream, Realm, get_user_profile_by_email, \
-    get_stream, email_allowed_for_realm
+    get_stream, email_allowed_for_realm, Message
 
 from six import text_type
 from typing import Optional, Dict, Any
@@ -301,14 +301,46 @@ def create_user_backend(request, user_profile, email=REQ(), password=REQ(),
         return json_error(_("Email '%(email)s' does not belong to domain '%(domain)s'") %
                           {'email': email, 'domain': realm.domain})
 
+    created = False
     try:
-        user_profile = get_user_profile_by_email(email)
+        profile = get_user_profile_by_email(email)
+    except UserProfile.DoesNotExist:
+        created = True
+        profile = do_create_user(email, password, realm, full_name, short_name)
+
+    avatar_url = get_avatar_url(
+        profile.avatar_source,
+        profile.email
+    )
+    # Last message pointer
+    pointer = profile.pointer
+    messages = Message.objects.filter(usermessage__user_profile=profile).order_by('-id')[:1]
+    if messages:
+        max_message_id = messages[0].id
+    else:
+        max_message_id = -1
+
+    user_has_messages = max_message_id != -1
+    if pointer == -1 and user_has_messages:
+        # Put the new user's pointer at the bottom
+        #
+        # This improves performance, because we limit backfilling of messages
+        # before the pointer.  It's also likely that someone joining an
+        # organization is interested in recent messages more than the very
+        # first messages on the system.
+        pointer = max_message_id
+
+    result = {"full_name": profile.full_name,
+              "is_active": profile.is_active,
+              "email": profile.email,
+              "avatar_url": avatar_url,
+              "api_key": profile.api_key,
+              "pointer": pointer}
+
+    if created:
+        return json_success(dict(user_profile=result))
+    else:
         return json_error(
             _("Email '%s' already in use") % (email,),
-            dict(api_key=user_profile.api_key)
+            dict(user_profile=result)
         )
-    except UserProfile.DoesNotExist:
-        pass
-
-    user_profile = do_create_user(email, password, realm, full_name, short_name)
-    return json_success(dict(api_key=user_profile.api_key))
